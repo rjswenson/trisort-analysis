@@ -3,7 +3,7 @@ import typer
 from app.config import get_settings
 from app.db import check_db_connection, create_db_engine
 from app.logging import configure_logging
-from app.sync.orchestrator import run_sync_dry_run, run_sync_full, run_sync_mock
+from app.sync.orchestrator import run_sync_dry_run, run_sync_full, run_sync_incremental, run_sync_mock
 
 app = typer.Typer(help="Trisort local Jira sync and analysis CLI")
 sync_app = typer.Typer(help="Synchronization commands")
@@ -35,7 +35,14 @@ def sync_full() -> None:
 
 @sync_app.command("incremental")
 def sync_incremental() -> None:
-	typer.echo("Sync incremental is not implemented yet (Milestone B).")
+	settings = get_settings()
+	configure_logging(settings.log_level)
+	result = run_sync_incremental(settings)
+	typer.echo(
+		"Sync incremental complete: "
+		f"rows_read={result['rows_read']} rows_written={result['rows_written']} "
+		f"watermark_in={result['watermark_in']} watermark_out={result['watermark_out']}"
+	)
 
 
 @sync_app.command("dry-run")

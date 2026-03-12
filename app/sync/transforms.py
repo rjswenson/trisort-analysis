@@ -163,3 +163,25 @@ def replace_issue_project_residency(engine: Engine, issue_id: int, rows: list[di
 		if rows:
 			conn.execute(insert_query, rows)
 	return len(rows)
+
+
+def get_last_successful_watermark(engine: Engine) -> str | None:
+	query = text(
+		"""
+		SELECT watermark_out
+		FROM sync_runs
+		WHERE status = 'success' AND watermark_out IS NOT NULL
+		ORDER BY watermark_out DESC
+		LIMIT 1
+		"""
+	)
+	with engine.begin() as conn:
+		value = conn.execute(query).scalar_one_or_none()
+		return str(value) if value is not None else None
+
+
+def get_max_issue_updated_at(engine: Engine) -> str | None:
+	query = text("SELECT MAX(updated_at) FROM issues_current")
+	with engine.begin() as conn:
+		value = conn.execute(query).scalar_one_or_none()
+		return str(value) if value is not None else None
