@@ -10,10 +10,12 @@ from app.db import create_db_engine
 from app.jira.client import JiraClient
 from app.jira.endpoints import build_issue_search_jql
 from app.jira.parsers import flatten_changelog_events, parse_issue_row, parse_worklogs
+from app.sync.residency import derive_issue_project_residency
 from app.sync.transforms import (
 	complete_sync_run,
 	create_sync_run,
 	insert_issue_events,
+	replace_issue_project_residency,
 	upsert_issues_current,
 	upsert_worklogs,
 )
@@ -47,6 +49,7 @@ def run_full_sync(settings: Settings, dry_run: bool = False, mock_fixture_path: 
 	issues_rows: list[dict[str, Any]] = []
 	events_rows: list[dict[str, Any]] = []
 	worklog_rows: list[dict[str, Any]] = []
+	residency_rows_by_issue: dict[int, list[dict[str, Any]]] = {}
 
 	run_id: int | None = None
 	if not dry_run:
@@ -61,8 +64,20 @@ def run_full_sync(settings: Settings, dry_run: bool = False, mock_fixture_path: 
 				issue["changelog"] = mock_changelog_payload.get("changelog", {"histories": []})
 
 		for issue in issues:
-			issues_rows.append(parse_issue_row(issue, run_id=run_id))
-			events_rows.extend(flatten_changelog_events(issue, run_id=run_id))
+			issue_row = parse_issue_row(issue, run_id=run_id)
+			issues_rows.append(issue_row)
+
+			issue_events = flatten_changelog_events(issue, run_id=run_id)
+			events_rows.extend(issue_events)
+
+			issue_id = int(issue["id"])
+			issue_key = issue.get("key", "")
+			residency_rows_by_issue[issue_id] = derive_issue_project_residency(
+				issue_id=issue_id,
+				issue_key=issue_key,
+				events=issue_events,
+				run_id=run_id,
+			)
 
 			if mock_fixture_path:
 				wl_payload = mock_worklog_payload.get("worklogs", [])
@@ -76,6 +91,8 @@ def run_full_sync(settings: Settings, dry_run: bool = False, mock_fixture_path: 
 			rows_written += upsert_issues_current(engine, issues_rows)
 			rows_written += insert_issue_events(engine, events_rows)
 			rows_written += upsert_worklogs(engine, worklog_rows)
+			for issue_id, residency_rows in residency_rows_by_issue.items():
+				rows_written += replace_issue_project_residency(engine, issue_id, residency_rows)
 			complete_sync_run(
 				engine,
 				run_id=run_id,

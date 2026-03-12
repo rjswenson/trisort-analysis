@@ -143,3 +143,23 @@ def upsert_worklogs(engine: Engine, rows: list[dict[str, Any]]) -> int:
 	with engine.begin() as conn:
 		conn.execute(query, rows)
 	return len(rows)
+
+
+def replace_issue_project_residency(engine: Engine, issue_id: int, rows: list[dict[str, Any]]) -> int:
+	delete_query = text("DELETE FROM issue_project_residency WHERE issue_id = :issue_id")
+	insert_query = text(
+		"""
+		INSERT INTO issue_project_residency (
+			issue_id, issue_key, project_key, entered_at, exited_at,
+			duration_seconds, sequence_num, run_id
+		) VALUES (
+			:issue_id, :issue_key, :project_key, :entered_at, :exited_at,
+			:duration_seconds, :sequence_num, :run_id
+		)
+		"""
+	)
+	with engine.begin() as conn:
+		conn.execute(delete_query, {"issue_id": issue_id})
+		if rows:
+			conn.execute(insert_query, rows)
+	return len(rows)
