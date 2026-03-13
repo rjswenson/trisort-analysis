@@ -1,38 +1,38 @@
 services:
-	postgres:
-		image: postgres:16
-		container_name: trisort_postgres
-		restart: unless-stopped
-		environment:
-			POSTGRES_USER: ${POSTGRES_USER:-postgres}
-			POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-			POSTGRES_DB: ${POSTGRES_DB:-trisort}
-		ports:
-			- "${POSTGRES_PORT:-5432}:5432"
-		volumes:
-			- pgdata:/var/lib/postgresql/data
-		healthcheck:
-			test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-trisort}"]
-			interval: 5s
-			timeout: 5s
-			retries: 12
+  postgres:
+    image: postgres:16
+    container_name: trisort_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-trisort}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-trisort}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
-	app:
-		build:
-			context: .
-			dockerfile: Dockerfile
-		container_name: trisort_app
-		depends_on:
-			postgres:
-				condition: service_healthy
-		env_file:
-			- .env
-		environment:
-			DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql+psycopg://postgres:postgres@postgres:5432/trisort}
-		volumes:
-			- ./:/workspace
-		working_dir: /workspace
-		command: ["sleep", "infinity"]
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trisort_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql+psycopg://postgres:postgres@postgres:5432/trisort}
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    command: ["sleep", "infinity"]
 
 volumes:
-	pgdata:
+  pgdata:

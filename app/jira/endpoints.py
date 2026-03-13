@@ -2,7 +2,7 @@ from urllib.parse import quote
 
 
 def search_url(base_url: str) -> str:
-	return f"{base_url.rstrip('/')}/rest/api/3/search"
+	return f"{base_url.rstrip('/')}/rest/api/3/search/jql"
 
 
 def issue_url(base_url: str, issue_id_or_key: str) -> str:
