@@ -45,3 +45,32 @@ Local Jira Cloud to PostgreSQL sync toolkit for EIT lifecycle analysis.
 
 - Run unit tests:
 	- `pytest -q`
+
+## Troubleshooting
+
+1. Jira returns 401 or 403:
+- Re-check `JIRA_EMAIL` and `JIRA_API_TOKEN`.
+- Confirm token scope and Jira project permissions.
+- Verify `JIRA_BASE_URL` uses your Jira Cloud tenant hostname.
+
+2. Jira returns 429 (rate limit):
+- Reduce run frequency and avoid concurrent sync runs.
+- Narrow JQL date/project windows for large backfills.
+- Retry after cool-down; the client already retries transient failures.
+
+3. Sync fails with SQL errors:
+- Re-apply schema using `make bootstrap-db`.
+- Confirm app uses the intended `DATABASE_URL`.
+
+4. Dry run succeeds but full sync fails:
+- Confirm DB credentials and connectivity from the runtime context.
+- Check `sync_runs.error_message` for first failing operation.
+
+5. Running from host shell vs app container:
+- Host-shell commands should use `DATABASE_URL` with `localhost`.
+- Container-run commands should use Postgres service host `postgres`.
+- Compose can override container DB URL separately from host `.env` values.
+
+## First Run Checklist
+
+- See [docs/FIRST_RUN_CHECKLIST.md](docs/FIRST_RUN_CHECKLIST.md) before the first real Jira full sync.
